@@ -37,3 +37,6 @@ resource "azurerm_kubernetes_cluster" "aks" {
     environment = "dev"
   }
 }
+
+
+# Trigger CI rerun
