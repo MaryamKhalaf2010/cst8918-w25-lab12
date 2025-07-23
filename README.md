@@ -12,7 +12,7 @@ The infrastructure code is defined in Terraform and stored in the `infra` folder
 |------------------|------------------------|--------------------------------------------|
 | Maryam Khalaf    | MaryamKhalaf2010       | Repo setup, remote backend configuration   |
 | Rahaf Alkhlaf    | alkh0115               | AKS infrastructure                        |
-| Member C         | usernameC              | GitHub Actions CI/CD                      |
+| XuHui Liang      | lian0138               | GitHub Actions CI/CD                      |
 
 ---
 
