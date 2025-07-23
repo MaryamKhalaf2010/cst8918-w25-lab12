@@ -11,7 +11,7 @@ The infrastructure code is defined in Terraform and stored in the `infra` folder
 | Name             | GitHub Username        | Responsibilities                          |
 |------------------|------------------------|--------------------------------------------|
 | Maryam Khalaf    | MaryamKhalaf2010       | Repo setup, remote backend configuration   |
-| Member B         | usernameB              | AKS infrastructure                        |
+| Rahaf Alkhlaf    | alkh0115               | AKS infrastructure                        |
 | Member C         | usernameC              | GitHub Actions CI/CD                      |
 
 ---
