@@ -6,17 +6,17 @@ The infrastructure code is defined in Terraform and stored in the `infra` folder
 
 ---
 
-## 👥 Team Members
+##  Team Members
 
 | Name             | GitHub Username        | Responsibilities                          |
 |------------------|------------------------|--------------------------------------------|
 | Maryam Khalaf    | MaryamKhalaf2010       | Repo setup, remote backend configuration   |
-| Member B         | usernameB              | AKS infrastructure                        |
+| Rahaf Alkhlaf    | alkh0115               | AKS infrastructure                        |
 | Member C         | usernameC              | GitHub Actions CI/CD                      |
 
 ---
 
-## 📁 Folder Structure
+##  Folder Structure
 
 ```
 cst8918-w25-lab12
@@ -36,7 +36,7 @@ cst8918-w25-lab12
 
 ---
 
-## 🔐 Terraform Remote State
+##  Terraform Remote State
 
 Terraform state is stored remotely in an Azure Storage Account:
 
@@ -46,7 +46,7 @@ Terraform state is stored remotely in an Azure Storage Account:
 
 ---
 
-## ✅ Screenshots (Required for Submission)
+##  Screenshots (Required for Submission)
 
 | Description          | Screenshot Path                    |
 |----------------------|-------------------------------------|
@@ -55,8 +55,40 @@ Terraform state is stored remotely in an Azure Storage Account:
 
 ---
 
-## 📋 Notes
+## Notes
 
 - Application code is not included — focus is on infrastructure and automation.
 - CI/CD includes static testing, integration testing, deploy, and drift detection.
 - Uses GitHub OIDC for secure Azure login from workflows.
+
+## GitHub Actions Workflow: Static Terraform Checks
+A CI workflow was added at .github/workflows/infra-static-tests.yml to run Terraform static analysis on each push to the dev branch and on pull requests to main.
+
+### What This Workflow Does
+This workflow performs two types of static checks:
+
+### terraform fmt
+Verifies that all .tf files are properly formatted using the standard Terraform style.
+
+### tflint
+Lints the Terraform code for common issues, best practices, and style problems.
+
+##  Trigger Conditions
+This workflow runs automatically when:
+
+A developer pushes to the dev branch
+
+A pull request is opened targeting the main branch
+
+## Successful Workflow Execution
+After pushing the workflow file and opening a PR from dev to main, the GitHub Actions pipeline was triggered and completed successfully.
+
+- Screenshot 1: All checks passed
+
+- Screenshot 2: Static Terraform Check Output
+
+### These checks ensure that:
+
+- The Terraform code is clean and consistent
+
+- The CI system is working before applying real infrastructure changes
