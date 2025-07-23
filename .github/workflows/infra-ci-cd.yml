@@ -5,13 +5,13 @@ on:
     branches:
       - '**'  # Runs on push to any branch
     paths:
-      - 'infra/tf-app/**'
+      - 'infra/tf-app/**'  # Only trigger if Terraform files change
 
 jobs:
   static-tests:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      id-token: write  # For OIDC
       contents: read
 
     steps:
@@ -21,7 +21,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.5.0
+          terraform_version: 1.5.0  # Adjust to your version
 
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
@@ -37,7 +37,7 @@ jobs:
 
       - name: Terraform Init
         working-directory: infra/tf-app
-        run: terraform init -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"
+        run: terraform init -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"  # Assumes secret for storage account
 
       - name: Terraform Format Check
         working-directory: infra/tf-app
