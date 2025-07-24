@@ -34,6 +34,9 @@ jobs:
         with:
           tflint_version: v0.50.3
 
+      - name: Remove TFLint plugin cache
+        run: rm -rf ~/.tflint.d/plugins
+
       - name: Run TFLint
         run: tflint -c infra/tf-app/.tflint.hcl infra/tf-app
 
