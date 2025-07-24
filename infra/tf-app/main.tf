@@ -1,10 +1,10 @@
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.75.0"
-    }
-  }
-
-  required_version = ">= 1.5.0"
+resource "azurerm_resource_group" "app" {
+  name     = "khal0233-a12-rg"
+  location = "canadaeast"
 }
+provider "azurerm" {
+  features {}
+
+  use_oidc = true
+}
+
