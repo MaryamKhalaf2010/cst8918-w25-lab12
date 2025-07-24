@@ -1,12 +1,9 @@
-plugin "aws" {
-  enabled = true
+config {
+  terraform_version = "1.6.6"
 }
 
 plugin "azurerm" {
   enabled = true
-}
-
-config {
-  # Optional: enable deep checks
-  deep_check = true
+  version = "0.21.0"
+  source  = "github.com/terraform-linters/tflint-ruleset-azurerm"
 }
