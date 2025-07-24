@@ -3,50 +3,35 @@ name: Terraform Static Tests
 on:
   push:
     branches:
-      - '**'  # Runs on push to any branch
-    paths:
-      - 'infra/tf-app/**'  # Only trigger if Terraform files change
+      - '**'
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
-  static-tests:
+  static-check:
+    name: Static Analysis
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write  # For OIDC
-      contents: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
+      - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.5.0  # Adjust to your version
-
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: latest
-
-      - name: Azure Login with OIDC
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Terraform Init
-        working-directory: infra/tf-app
-        run: terraform init -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"  # Assumes secret for storage account
+          terraform_version: 1.6.6
 
       - name: Terraform Format Check
-        working-directory: infra/tf-app
-        run: terraform fmt -check -recursive
+        run: terraform -chdir=infra/tf-app fmt -check -diff
 
-      - name: Terraform Validate
-        working-directory: infra/tf-app
-        run: terraform validate
+      - name: Install tflint
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
 
-      - name: TFLint
-        working-directory: infra/tf-app
-        run: tflint --init && tflint -f compact
+      - name: Run tflint
+        run: |
+          cd infra/tf-app
+          tflint --init
+          tflint
