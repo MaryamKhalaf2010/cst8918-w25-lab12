@@ -2,11 +2,13 @@ name: Terraform Drift Detection
 
 on:
   schedule:
-    - cron: "0 6 * * *"  # Runs every day at 6 AM UTC
+    - cron: "0 6 * * *"  # Runs daily at 6 AM UTC
+  workflow_dispatch:      # Allows manual trigger
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
+  issues: write
 
 jobs:
   drift-detection:
@@ -32,5 +34,21 @@ jobs:
       - name: Terraform Init
         run: terraform -chdir=infra/tf-app init
 
-      - name: Terraform Plan (Check Drift)
-        run: terraform -chdir=infra/tf-app plan -detailed-exitcode
+      - name: Terraform Plan (Detect Drift)
+        id: plan
+        run: terraform -chdir=infra/tf-app plan -detailed-exitcode || echo "exit_code=$?" >> $GITHUB_ENV
+
+      - name: Create Drift Issue
+        if: env.exit_code == '2'
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: "⚠️ Drift Detected in Terraform Infrastructure"
+          content-filepath: .github/drift-message.md
+          labels: drift
+
+      - name: Close Drift Issue if No Drift
+        if: env.exit_code != '2'
+        run: |
+          gh issue list --label drift --state open --json number --jq '.[].number' | while read issue; do
+            gh issue close "$issue" -c "✅ No drift detected in latest run."
+          done
