@@ -24,10 +24,11 @@ jobs:
       - name: Terraform Format Check
         run: terraform -chdir=infra/tf-app fmt -check
 
-      - name: Install TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: v0.50.3
+      - name: Terraform Validate
+        run: terraform -chdir=infra/tf-app validate
 
-      - name: Run TFLint
-        run: tflint -c infra/tf-app/.tflint.hcl infra/tf-app
+      - name: Install Checkov
+        run: pip install checkov
+
+      - name: Run Checkov
+        run: checkov -d infra/tf-app
