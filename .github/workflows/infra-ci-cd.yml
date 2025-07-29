@@ -33,10 +33,18 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      - name: Terraform Init
-        run: terraform -chdir=infra/tf-app init
+      - name: Cache Terraform plugins
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            infra/tf-app/.terraform
+          key: ${{ runner.os }}-terraform-${{ hashFiles('infra/tf-app/**/*.tf') }}
 
-      - name: Terraform Fmt
+      - name: Terraform Init
+        run: terraform -chdir=infra/tf-app init -upgrade
+
+      - name: Terraform Format Check
         run: terraform -chdir=infra/tf-app fmt -check
 
       - name: Terraform Validate
@@ -45,6 +53,12 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: terraform -chdir=infra/tf-app plan -out=tfplan
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: infra/tf-app/tfplan
 
   terraform-apply:
     needs: terraform-plan
@@ -55,6 +69,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: infra/tf-app
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -69,7 +89,7 @@ jobs:
           terraform_version: 1.6.6
 
       - name: Terraform Init
-        run: terraform -chdir=infra/tf-app init
+        run: terraform -chdir=infra/tf-app init -reconfigure
 
       - name: Terraform Apply
         run: terraform -chdir=infra/tf-app apply -auto-approve tfplan
