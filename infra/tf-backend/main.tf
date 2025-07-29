@@ -1,50 +1,40 @@
 terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.0"
-    }
+  required_version = ">= 1.5.0"
+
+  backend "azurerm" {
+    resource_group_name  = "khal0233-cst8918-tf-backend"
+    storage_account_name = "khal0233tfstorage"
+    container_name       = "tfstate"
+    key                  = "terraform.tfstate"
+    use_oidc             = true
   }
 }
 
 provider "azurerm" {
   features {}
+  use_oidc = true
+  skip_provider_registration = true
 }
 
-resource "azurerm_resource_group" "backend" {
-  name     = "khal0233-githubactions-rg" # Replace with your college ID if needed
-  location = "canadaeast"
-}
-
-resource "azurerm_storage_account" "backend" {
-  name                     = "khal0233githubactions" # Must be globally unique
-  resource_group_name      = azurerm_resource_group.backend.name
-  location                 = azurerm_resource_group.backend.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-  min_tls_version          = "TLS1_2"
-}
-
-resource "azurerm_storage_container" "tfstate" {
-  name                  = "tfstate"
-  storage_account_name  = azurerm_storage_account.backend.name
-  container_access_type = "private"
+# Data source for existing storage account
+data "azurerm_storage_account" "existing" {
+  name                = "khal0233tfstorage"
+  resource_group_name = "khal0233-cst8918-tf-backend"
 }
 
 output "resource_group_name" {
-  value = azurerm_resource_group.backend.name
+  value = "khal0233-cst8918-tf-backend"
 }
 
 output "storage_account_name" {
-  value = azurerm_storage_account.backend.name
+  value = "khal0233tfstorage"
 }
 
 output "container_name" {
-  value = azurerm_storage_container.tfstate.name
+  value = "tfstate"
 }
 
 output "arm_access_key" {
-  value     = azurerm_storage_account.backend.primary_access_key
+  value     = data.azurerm_storage_account.existing.primary_access_key
   sensitive = true
 }
-
