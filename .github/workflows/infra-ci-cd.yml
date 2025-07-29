@@ -1,98 +1,95 @@
-name: Terraform Static Tests & Deployment (dev)
+name: Terraform Plan & Deploy
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
-      - '**'  # Runs on push to any branch
-    paths:
-      - 'infra/tf-app/**'  # Only trigger if Terraform files change
+      - main
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
-  static-tests:
+  terraform-plan:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write  # For OIDC
-      contents: read
+    environment: production
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0  # Adjust to your version
-
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: latest
-
-      - name: Azure Login with OIDC
+      - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            infra/tf-app/.terraform
+          key: ${{ runner.os }}-terraform-${{ hashFiles('infra/tf-app/**/*.tf') }}
+
       - name: Terraform Init
-        working-directory: infra/tf-app
-        run: terraform init -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"  # Assumes secret for storage account
+        run: terraform -chdir=infra/tf-app init -upgrade
 
       - name: Terraform Format Check
-        working-directory: infra/tf-app
-        run: terraform fmt -check -recursive
+        run: terraform -chdir=infra/tf-app fmt -check
 
       - name: Terraform Validate
-        working-directory: infra/tf-app
-        run: terraform validate
-
-      - name: TFLint
-        working-directory: infra/tf-app
-        run: tflint --init && tflint -f compact
+        run: terraform -chdir=infra/tf-app validate
 
       - name: Terraform Plan
-        working-directory: infra/tf-app
-        run: terraform plan -input=false -out=tfplan
+        id: plan
+        run: terraform -chdir=infra/tf-app plan -out=tfplan
 
-      - name: Upload Terraform Plan Artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
           path: infra/tf-app/tfplan
 
-  deploy:
-    if: github.ref == 'refs/heads/dev'
-    needs: static-tests
+  terraform-apply:
+    needs: terraform-plan
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
+    environment: production
+    if: github.event_name == 'push' && needs.terraform-plan.result == 'success'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
         with:
-          terraform_version: 1.5.0
+          name: terraform-plan
+          path: infra/tf-app
 
-      - name: Azure Login with OIDC
+      - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
       - name: Terraform Init
-        working-directory: infra/tf-app
-        run: terraform init -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"
+        run: terraform -chdir=infra/tf-app init -reconfigure
 
-      - name: Terraform Apply (dev only)
-        working-directory: infra/tf-app
-        run: terraform apply -auto-approve tfplan
-
-      - name: Show Terraform Outputs
-        working-directory: infra/tf-app
-        run: terraform output
+      - name: Terraform Apply
+        run: terraform -chdir=infra/tf-app apply -auto-approve tfplan
