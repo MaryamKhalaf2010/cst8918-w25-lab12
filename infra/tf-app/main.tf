@@ -1,3 +1,8 @@
+resource "azurerm_resource_group" "app_rg" {
+  name     = "khal0233-a12-rg"
+  location = "canadaeast"
+}
+
 resource "azurerm_virtual_network" "app_vnet" {
   name                = "khal0233-a12-vnet"
   address_space       = ["10.0.0.0/16"]
