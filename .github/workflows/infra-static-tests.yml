@@ -2,51 +2,45 @@ name: Terraform Static Tests
 
 on:
   push:
-    branches:
-      - '**'  # Runs on push to any branch
+    branches: [ master, develop ]
     paths:
-      - 'infra/tf-app/**'  # Only trigger if Terraform files change
+      - 'infra/**'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'infra/**'
+
+env:
+  TF_VERSION: "1.5.0"
+  TFLINT_VERSION: "0.47.0"
 
 jobs:
   static-tests:
+    name: Static Code Analysis
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write  # For OIDC
-      contents: read
-
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0  # Adjust to your version
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: latest
+    - name: Setup TFLint
+      uses: terraform-linters/setup-tflint@v4
+      with:
+        tflint_version: v${{ env.TFLINT_VERSION }}
 
-      - name: Azure Login with OIDC
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    - name: TFLint
+      working-directory: ./infra/tf-app
+      run: tflint --init && tflint
 
-      - name: Terraform Init
-        working-directory: infra/tf-app
-        run: terraform init -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"  # Assumes secret for storage account
+    - name: Terraform Format Check
+      working-directory: ./infra/tf-app
+      run: terraform fmt -check -recursive
 
-      - name: Terraform Format Check
-        working-directory: infra/tf-app
-        run: terraform fmt -check -recursive
-
-      - name: Terraform Validate
-        working-directory: infra/tf-app
-        run: terraform validate
-
-      - name: TFLint
-        working-directory: infra/tf-app
-        run: tflint --init && tflint -f compact
+    - name: Terraform Validate
+      working-directory: ./infra/tf-app
+      run: terraform init -backend=false && terraform validate 

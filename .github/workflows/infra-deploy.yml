@@ -1,9 +1,10 @@
-name: Terraform Drift Detection
+name: Terraform Deploy
 
 on:
-  schedule:
-    - cron: '0 2 * * *'  # Run daily at 2 AM UTC
-  workflow_dispatch:  # Allow manual trigger
+  push:
+    branches: [ master ]
+    paths:
+      - 'infra/**'
 
 env:
   TF_VERSION: "1.5.0"
@@ -13,9 +14,10 @@ permissions:
   contents: read
 
 jobs:
-  drift-detection:
-    name: Drift Detection
+  deploy:
+    name: Deploy Infrastructure
     runs-on: ubuntu-latest
+    environment: production
     
     steps:
     - name: Checkout
@@ -43,23 +45,16 @@ jobs:
 
     - name: Terraform Plan
       working-directory: ./infra/tf-app
-      run: terraform plan -detailed-exitcode
-      continue-on-error: true
+      run: terraform plan -out=tfplan
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: Check for Drift
-      run: |
-        if [ $? -eq 2 ]; then
-          echo "❌ Infrastructure drift detected!"
-          echo "Please review the Terraform plan above and apply changes if needed."
-          exit 1
-        elif [ $? -eq 0 ]; then
-          echo "✅ No infrastructure drift detected."
-        else
-          echo "⚠️ Terraform plan failed. Please check the logs above."
-          exit 1
-        fi
-      working-directory: ./infra/tf-app 
+    - name: Terraform Apply
+      working-directory: ./infra/tf-app
+      run: terraform apply -auto-approve tfplan
+      env:
+        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }} 
